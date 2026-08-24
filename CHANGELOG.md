@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 2.1.6 — 2026-08-24
+
+- Declared complete Alpine runtime dependencies for release-control jobs, including Python 3 for all-channel approval and xfyun verification, and explicit TAR support for archive-inspecting gates.
+- Added machine-checked per-job runtime contracts so missing Python, Git, network, archive, checksum, Node/npm or PowerShell prerequisites are caught before a protected release pipeline is started.
+
+## 2.1.5 — 2026-08-24
+
+- Made Linux, macOS and Windows release packages byte-for-byte reproducible across Git checkouts and CI providers, with commit-bound timestamps and a strict public attachment allowlist.
+- Added Gitee attachment digest/read-back verification, a dedicated read-only credential preflight, and fail-closed idempotency for existing assets.
+- Added the dedicated GitHub Copilot Skill V2 preflight, publish, Release and anonymous verification chain without sharing the main GitHub repository key; the environment-scoped V2 preflight remains a required final-pipeline gate before publication.
+- Bound every channel evidence record and aggregate result to the current tag, source commit and pipeline; preview pipelines no longer report historical publication success.
+- Added an external-write-free release rehearsal path, machine-checked CI topology, stronger sensitive-content scanning, and current-version xfyun verification.
+- Moved private release-control regressions below `.internal/tests/`, passed a frozen public `SOURCE_DATE_EPOCH` through `RELEASE-METADATA.json`, normalized reviewed tool license/readme text only in staging, and expanded token scanning to xfyun/SkillHub, Gitee and Qoder formats.
+
 ## 2.1.4 — 2026-08-24
 
 - Added private GitLab release gates for policy, security, one-time artifact freezing, manual GitHub publication, remote read-back and evidence aggregation without changing the tested runtime directory layout.

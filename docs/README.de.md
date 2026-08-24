@@ -128,4 +128,4 @@ UnpackFlow erhält Quelldateien, überschreibt keine Ziele und führt keine unbe
 
 Bei Fragen schreiben Sie an [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) oder [eröffnen Sie ein GitHub-Issue](https://github.com/pangxin12345/unpack-flow/issues).
 
-MIT-Lizenz, Version 2.1.4.
+MIT-Lizenz, Version 2.1.6.

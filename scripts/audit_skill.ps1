@@ -5,7 +5,7 @@ param(
 )
 $root = (Resolve-Path $Skill).Path
 $errors = [System.Collections.Generic.List[string]]::new()
-$required = @('SKILL.md','README.md','CHANGELOG.md','CONTRIBUTING.md','LICENSE','SECURITY.md','SUPPORT.md','PUBLISHER.md','agents/openai.yaml','install.bat','install-linux.sh','install-macos.sh')
+$required = @('SKILL.md','README.md','CHANGELOG.md','CONTRIBUTING.md','LICENSE','SECURITY.md','SUPPORT.md','PUBLISHER.md','agents/openai.yaml','install.bat','install-linux.sh','install-macos.sh','scripts/build-release.sh','scripts/create-reproducible-archives.py','scripts/normalize-release-tree.py','scripts/verify-release-assets.sh','scripts/audit_skill.py','scripts/check-anonymization.sh')
 foreach ($relative in $required) {
     $path = Join-Path $root $relative
     if (-not (Test-Path $path -PathType Leaf) -or (Get-Item $path).Length -eq 0) { $errors.Add("missing or empty public file: $relative") }
@@ -25,8 +25,12 @@ $skillText = Get-Content (Join-Path $root 'SKILL.md') -Raw -Encoding UTF8
 $nameMatch = [regex]::Match($skillText, '(?m)^name:\s*([a-z0-9-]+)\s*$')
 if (-not $nameMatch.Success -or $nameMatch.Groups[1].Value -ne (Split-Path $root -Leaf)) { $errors.Add('SKILL.md name does not match folder name') }
 if ($PublicExport) {
-    foreach ($relative in @('.internal','.gitlab-ci.yml','DISTRIBUTION.md','REGRESSION.md','REHEARSAL.md')) {
-        if (Test-Path (Join-Path $root $relative)) { $errors.Add("internal file present in public export: $relative") }
+    $forbiddenNames = @('.internal','.gitlab-ci.yml','release-evidence','.env','DISTRIBUTION.md','REGRESSION.md','REHEARSAL.md')
+    foreach ($item in Get-ChildItem -LiteralPath $root -Recurse -Force) {
+        $relative = $item.FullName.Substring($root.Length).TrimStart([char[]]@('\','/')).Replace('\','/')
+        if ($item.Name -in $forbiddenNames -or $item.Name.StartsWith('.env.') -or $item.Extension -eq '.log' -or $relative -eq 'scripts/export-public-source.sh') {
+            $errors.Add("internal file present in public export: $relative")
+        }
     }
 }
 Write-Output "Public Skill audit: $root"

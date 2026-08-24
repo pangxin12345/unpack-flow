@@ -128,4 +128,4 @@ UnpackFlow сохраняет исходные файлы, не перезапи
 
 По любым вопросам пишите на [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) или [создайте обращение в GitHub Issues](https://github.com/pangxin12345/unpack-flow/issues).
 
-Лицензия MIT, версия 2.1.4.
+Лицензия MIT, версия 2.1.6.

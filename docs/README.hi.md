@@ -128,4 +128,4 @@ UnpackFlow स्रोत फ़ाइलें सुरक्षित रख
 
 किसी भी प्रश्न के लिए [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) पर ईमेल करें या [GitHub Issues में समस्या दर्ज करें](https://github.com/pangxin12345/unpack-flow/issues)।
 
-MIT लाइसेंस, संस्करण 2.1.4।
+MIT लाइसेंस, संस्करण 2.1.6।

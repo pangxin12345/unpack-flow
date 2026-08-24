@@ -1,8 +1,8 @@
 #requires -Version 5.1
 $ErrorActionPreference = 'Stop'
-$share = if ($env:UNPACK_FLOW_WINDOWS_SHARE) { $env:UNPACK_FLOW_WINDOWS_SHARE } elseif (Test-Path -LiteralPath 'C:\UF212' -PathType Container) { 'C:\UF212' } else { '\\host.lan\Data\1111' }
+$share = if ($env:UNPACK_FLOW_WINDOWS_SHARE) { $env:UNPACK_FLOW_WINDOWS_SHARE } elseif (Test-Path -LiteralPath 'C:\UF215' -PathType Container) { 'C:\UF215' } else { throw 'Set UNPACK_FLOW_WINDOWS_SHARE to the isolated synthetic test share.' }
 $result = Join-Path $share 'windows-native-result.txt'
-$localRoot = 'C:\UnpackFlowTest-2.1.4'
+$localRoot = 'C:\UnpackFlowTest-2.1.6'
 $childOut = Join-Path $localRoot 'child-out.txt'
 $childErr = Join-Path $localRoot 'child-err.txt'
 
@@ -37,7 +37,7 @@ try {
     $cli = Join-Path $env:USERPROFILE '.local\bin\unpack-flow.cmd'
     $version = (& $cli version | Out-String).Trim()
     "VERSION=$version" | Add-Content -LiteralPath $result -Encoding UTF8
-    if ($version -ne '2.1.4') { throw "unexpected version: $version" }
+    if ($version -ne '2.1.6') { throw "unexpected version: $version" }
 
     $scan = Join-Path $localRoot 'scan'
     New-Item -ItemType Directory -Path $scan | Out-Null
@@ -93,7 +93,7 @@ try {
 
     $expectedCount = @(Get-ChildItem -LiteralPath $output -Filter EXPECTED.txt -File -Recurse).Count
     $exeCount = @(Get-ChildItem -LiteralPath $output -Filter demo.EXE -File -Recurse).Count
-    $failedCount = @(Get-ChildItem -LiteralPath $output -File -Recurse | Where-Object { $_.Name -match '(?i)^MiniSfx\.part0*1\.exe$' }).Count
+    $failedCount = @(Get-ChildItem -LiteralPath $output -File -Recurse | Where-Object { $_.Name -match '(?i)^(?:MiniSfx|sample-sfx)\.part0*1\.exe$' }).Count
     Get-ChildItem -LiteralPath $output -File -Recurse | ForEach-Object FullName | Set-Content -LiteralPath (Join-Path $share 'windows-output-files.txt') -Encoding UTF8
     "EXPECTED_COUNT=$expectedCount" | Add-Content -LiteralPath $result -Encoding UTF8
     "EXE_COUNT=$exeCount" | Add-Content -LiteralPath $result -Encoding UTF8

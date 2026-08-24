@@ -126,4 +126,4 @@ UnpackFlow は元ファイルを保持し、出力先を上書きせず、不明
 
 ご質問は [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) へメールするか、[GitHub Issues に投稿してください](https://github.com/pangxin12345/unpack-flow/issues)。
 
-MIT ライセンス、バージョン 2.1.4。
+MIT ライセンス、バージョン 2.1.6。

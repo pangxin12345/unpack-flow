@@ -31,6 +31,18 @@ jobs:
         run: |
           source_version=$(sed -n "s/^VERSION='\([^']*\)'.*/\1/p" scripts/unpack-flow)
           test "$RELEASE_TAG" = "v$source_version"
+          export SOURCE_DATE_EPOCH=$(python3 - <<'PY'
+          import json, pathlib
+          data = json.loads(pathlib.Path('RELEASE-METADATA.json').read_text())
+          assert set(data) == {'schema_version', 'version', 'tag', 'source_date_epoch'}
+          assert data.get('schema_version') == 1
+          assert data.get('version') == __import__('os').environ['RELEASE_TAG'].removeprefix('v')
+          assert data.get('tag') == __import__('os').environ['RELEASE_TAG']
+          value = data.get('source_date_epoch')
+          assert isinstance(value, int) and value > 0
+          print(value)
+          PY
+          )
           test ! -e .gitlab-ci.yml
           test ! -e .internal
           test ! -e scripts/export-public-source.sh
@@ -45,13 +57,16 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release already exists: $RELEASE_TAG"
+            tmp=$(mktemp -d)
+            gh release download "$RELEASE_TAG" --dir "$tmp"
+            bash scripts/verify-release-assets.sh dist/release-assets "$tmp"
+            echo "Release already exists and is byte-identical: $RELEASE_TAG"
             exit 0
           fi
           gh release create "$RELEASE_TAG" \
-            dist/unpack-flow-*.tar.gz \
-            dist/unpack-flow-*.zip \
-            dist/SHA256SUMS \
+            dist/release-assets/unpack-flow-*.tar.gz \
+            dist/release-assets/unpack-flow-*.zip \
+            dist/release-assets/SHA256SUMS \
             --verify-tag \
             --title "UnpackFlow ${RELEASE_TAG#v}" \
             --notes "Built automatically from the controlled public tag. Private GitLab control-plane files are excluded."

@@ -15,6 +15,9 @@ def main() -> int:
         "SKILL.md", "README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE",
         "SECURITY.md", "SUPPORT.md", "PUBLISHER.md",
         "agents/openai.yaml", "install.bat", "install-linux.sh", "install-macos.sh",
+        "scripts/build-release.sh", "scripts/create-reproducible-archives.py",
+        "scripts/normalize-release-tree.py", "scripts/verify-release-assets.sh",
+        "scripts/audit_skill.py", "scripts/check-anonymization.sh",
     )
     for relative in required:
         path = root / relative
@@ -42,9 +45,10 @@ def main() -> int:
         errors.append("SKILL.md name does not match folder name")
 
     if public_export:
-        forbidden = (".internal", ".gitlab-ci.yml", "DISTRIBUTION.md", "REGRESSION.md", "REHEARSAL.md", "scripts/export-public-source.sh")
-        for relative in forbidden:
-            if (root / relative).exists():
+        forbidden_names = {".internal", ".gitlab-ci.yml", "release-evidence", ".env", "DISTRIBUTION.md", "REGRESSION.md", "REHEARSAL.md"}
+        for path in root.rglob("*"):
+            relative = path.relative_to(root).as_posix()
+            if path.name in forbidden_names or path.name.startswith(".env.") or path.suffix == ".log" or relative == "scripts/export-public-source.sh":
                 errors.append(f"internal file present in public export: {relative}")
 
     print(f"Public Skill audit: {root}")
