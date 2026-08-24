@@ -1,5 +1,3 @@
-<p align="center"><a href="https://once-email.com"><img src="../assets/unpack-flow-banner.png" alt="UnpackFlow by Once Email" width="100%"></a></p>
-
 # UnpackFlow：多重圧縮を無人で連続展開
 
 [English](../README.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md) · [हिन्दी](README.hi.md) · [العربية](README.ar.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [日本語](README.ja.md) · [Русский](README.ru.md)
@@ -126,4 +124,4 @@ UnpackFlow は元ファイルを保持し、出力先を上書きせず、不明
 
 ご質問は [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) へメールするか、[GitHub Issues に投稿してください](https://github.com/pangxin12345/unpack-flow/issues)。
 
-MIT ライセンス、バージョン 2.1.8。
+MIT ライセンス、バージョン 2.1.9。

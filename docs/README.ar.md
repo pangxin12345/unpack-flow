@@ -1,5 +1,3 @@
-<p align="center"><a href="https://once-email.com"><img src="../assets/unpack-flow-banner.png" alt="UnpackFlow by Once Email" width="100%"></a></p>
-
 # UnpackFlow — فك الأرشيفات المتداخلة بلا مراقبة
 
 [English](../README.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md) · [हिन्दी](README.hi.md) · [العربية](README.ar.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [日本語](README.ja.md) · [Русский](README.ru.md)
@@ -128,4 +126,4 @@ scripts/install_local.sh .
 
 لأي سؤال، راسل [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) أو [افتح مشكلة على GitHub](https://github.com/pangxin12345/unpack-flow/issues).
 
-ترخيص MIT، الإصدار 2.1.8.
+ترخيص MIT، الإصدار 2.1.9.

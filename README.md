@@ -1,13 +1,9 @@
-<p align="center">
-  <a href="https://once-email.com"><img src="assets/unpack-flow-banner.png" alt="UnpackFlow by Once Email — Extract nested archives safely" width="100%"></a>
-</p>
-
 # UnpackFlow
 
 <p align="center"><strong>Cross-platform extraction for nested, multipart and self-extracting archives.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/pangxin12345/unpack-flow/releases"><img alt="Version 2.1.8" src="https://img.shields.io/badge/version-2.1.8-635bff"></a>
+  <a href="https://github.com/pangxin12345/unpack-flow/releases"><img alt="Version 2.1.9" src="https://img.shields.io/badge/version-2.1.9-635bff"></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-22a06b"></a>
   <img alt="Linux, Windows and macOS" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-1684ff">
   <a href="https://once-email.com"><img alt="Published by Once Email" src="https://img.shields.io/badge/by-Once%20Email-0aa7a7"></a>
@@ -226,4 +222,4 @@ The build creates Linux `.tar.gz`, macOS `.tar.gz`, Windows `.zip`, and `SHA256S
 
 For questions, email [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) or [open a GitHub issue](https://github.com/pangxin12345/unpack-flow/issues).
 
-MIT License. Version 2.1.8.
+MIT License. Version 2.1.9.

@@ -1,5 +1,3 @@
-<p align="center"><a href="https://once-email.com"><img src="../assets/unpack-flow-banner.png" alt="UnpackFlow by Once Email" width="100%"></a></p>
-
 # UnpackFlow — вложенные архивы без дежурства
 
 [English](../README.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md) · [हिन्दी](README.hi.md) · [العربية](README.ar.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [日本語](README.ja.md) · [Русский](README.ru.md)
@@ -128,4 +126,4 @@ UnpackFlow сохраняет исходные файлы, не перезапи
 
 По любым вопросам пишите на [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) или [создайте обращение в GitHub Issues](https://github.com/pangxin12345/unpack-flow/issues).
 
-Лицензия MIT, версия 2.1.8.
+Лицензия MIT, версия 2.1.9.

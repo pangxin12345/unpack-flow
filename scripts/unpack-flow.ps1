@@ -16,7 +16,7 @@ $ErrorActionPreference = 'Stop'
 if ($PSStyle -and $PSStyle.PSObject.Properties.Name -contains 'OutputRendering') {
     $PSStyle.OutputRendering = 'PlainText'
 }
-$Version = '2.1.8'
+$Version = '2.1.9'
 $Started = Get-Date
 $script:HeartbeatSeconds = 30
 $configuredHeartbeat = 0
@@ -213,7 +213,7 @@ trap {
 
 function Show-Help {
 @'
-UnpackFlow for Windows and macOS 2.1.8
+UnpackFlow for Windows and macOS 2.1.9
 
 Usage / 用法:
   unpack-flow run 'X*' -Output 'Extracted'     foreground / 前台运行

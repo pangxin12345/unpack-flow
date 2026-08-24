@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.1.9 — 2026-08-24
+
+- Removed the project banner asset and all documentation references from every public channel, while retaining the compact status badges in the canonical Git-hosting README files.
+
 ## 2.1.8 — 2026-08-24
 
 - Restored Skills.sh publication and GitHub read-back verification by downloading the GitLab-frozen public export before their isolated source comparisons.

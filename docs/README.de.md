@@ -1,5 +1,3 @@
-<p align="center"><a href="https://once-email.com"><img src="../assets/unpack-flow-banner.png" alt="UnpackFlow by Once Email" width="100%"></a></p>
-
 # UnpackFlow — verschachtelte Archive unbeaufsichtigt entpacken
 
 [English](../README.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md) · [हिन्दी](README.hi.md) · [العربية](README.ar.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [日本語](README.ja.md) · [Русский](README.ru.md)
@@ -128,4 +126,4 @@ UnpackFlow erhält Quelldateien, überschreibt keine Ziele und führt keine unbe
 
 Bei Fragen schreiben Sie an [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) oder [eröffnen Sie ein GitHub-Issue](https://github.com/pangxin12345/unpack-flow/issues).
 
-MIT-Lizenz, Version 2.1.8.
+MIT-Lizenz, Version 2.1.9.
