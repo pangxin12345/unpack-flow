@@ -1,0 +1,57 @@
+name: Publish GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact public tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git clone --depth 1 --branch "$RELEASE_TAG" "https://github.com/$REPOSITORY.git" unpack-flow
+
+      - name: Validate and build public release assets
+        working-directory: unpack-flow
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          source_version=$(sed -n "s/^VERSION='\([^']*\)'.*/\1/p" scripts/unpack-flow)
+          test "$RELEASE_TAG" = "v$source_version"
+          test ! -e .gitlab-ci.yml
+          test ! -e .internal
+          test ! -e scripts/export-public-source.sh
+          python3 scripts/audit_skill.py . --public-export
+          bash scripts/check-anonymization.sh
+          bash scripts/build-release.sh
+
+      - name: Create immutable release from the tag
+        working-directory: unpack-flow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release already exists: $RELEASE_TAG"
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" \
+            dist/unpack-flow-*.tar.gz \
+            dist/unpack-flow-*.zip \
+            dist/SHA256SUMS \
+            --verify-tag \
+            --title "UnpackFlow ${RELEASE_TAG#v}" \
+            --notes "Built automatically from the controlled public tag. Private GitLab control-plane files are excluded."
