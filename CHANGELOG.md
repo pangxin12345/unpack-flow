@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.1.8 — 2026-08-24
+
+- Restored Skills.sh publication and GitHub read-back verification by downloading the GitLab-frozen public export before their isolated source comparisons.
+- Added release-topology assertions that prevent every frozen-source publisher or verifier from running without its required artifact dependency.
+- Replaced GNU-only `realpath -e/-m` usage with portable canonicalization so native macOS input discovery and output-boundary checks work with the system `realpath`.
+
 ## 2.1.7 — 2026-08-24
 
 - Blocked archive path traversal before extraction on Bash and PowerShell by enumerating and normalizing every entry, rejecting absolute or escaping paths and archive links, and applying the same checks to recursive inner archives and fallback engines.

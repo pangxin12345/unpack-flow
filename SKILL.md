@@ -8,7 +8,7 @@ metadata:
   github_profile: "https://github.com/pangxin12345"
   creator: "helen.jar"
   license: "MIT"
-  version: "2.1.7"
+  version: "2.1.8"
 ---
 
 # UnpackFlow / 智能解压编排器

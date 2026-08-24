@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-VERSION='2.1.7'
+VERSION='2.1.8'
 START_DIR=$(pwd -P)
 SELF=$0
 while [[ -L "$SELF" ]]; do
@@ -118,6 +118,30 @@ validate_output_root() {
   case "$OUT_ROOT" in /|/bin|/boot|/dev|/etc|/lib|/lib64|/proc|/root|/run|/sbin|/sys|/usr|/var|/home) die_usage "拒绝使用系统目录作为输出根目录：$OUT_ROOT";; esac
 }
 
+canonical_existing_path() {
+  realpath -- "$1" 2>/dev/null
+}
+
+canonical_future_path() {
+  local path=$1 part
+  local -a suffix=()
+  while [[ ! -e "$path" ]]; do
+    [[ "$path" != / ]] || return 1
+    suffix=("${path##*/}" "${suffix[@]}")
+    path=${path%/*}
+    [[ -n "$path" ]] || path=/
+  done
+  path=$(canonical_existing_path "$path") || return 1
+  for part in "${suffix[@]}"; do
+    case "$part" in
+      ''|.) ;;
+      ..) path=${path%/*}; [[ -n "$path" ]] || path=/ ;;
+      *) path=${path%/}/$part ;;
+    esac
+  done
+  printf '%s\n' "$path"
+}
+
 resolve_patterns() {
   local p expression path canonical cwd
   local -a expanded=()
@@ -137,7 +161,7 @@ resolve_patterns() {
     mapfile -t expanded < <(compgen -G "$expression" || true)
     for path in "${expanded[@]}"; do
       [[ -e "$path" ]] || continue
-      canonical=$(realpath -e -- "$path" 2>/dev/null || true)
+      canonical=$(canonical_existing_path "$path" || true)
       [[ -n "$canonical" ]] || continue
       is_dangerous_source "$canonical" && die "拒绝把系统根目录作为归档输入：$canonical"
       [[ -n "${seen[$canonical]:-}" ]] && continue
@@ -150,7 +174,7 @@ resolve_patterns() {
 
 validate_source_output_separation() {
   local p out_parent
-  out_parent=$(realpath -m -- "$OUT_ROOT")
+  out_parent=$(canonical_future_path "$OUT_ROOT") || die "无法规范化输出目录：$OUT_ROOT"
   for p in "${MATCHES[@]}"; do
     [[ "$out_parent" != "$p"/* ]] || die "输出目录不能位于源项目的子目录内：$p -> $OUT_ROOT"
   done
@@ -217,7 +241,7 @@ expand_recursive_matches() {
       continue
     fi
     while IFS= read -r -d '' candidate; do
-      canonical=$(realpath -e -- "$candidate" 2>/dev/null || true)
+      canonical=$(canonical_existing_path "$candidate" || true)
       [[ -n "$canonical" && -z "${seen_recursive[$canonical]:-}" ]] || continue
       kind=$(archive_kind "$canonical")
       [[ "$kind" != unknown ]] || continue

@@ -128,4 +128,4 @@ O UnpackFlow preserva os arquivos de origem, não sobrescreve destinos e não ex
 
 Para dúvidas, escreva para [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) ou [abra uma issue no GitHub](https://github.com/pangxin12345/unpack-flow/issues).
 
-Licença MIT, versão 2.1.7.
+Licença MIT, versão 2.1.8.
