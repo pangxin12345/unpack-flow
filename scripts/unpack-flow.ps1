@@ -16,7 +16,7 @@ $ErrorActionPreference = 'Stop'
 if ($PSStyle -and $PSStyle.PSObject.Properties.Name -contains 'OutputRendering') {
     $PSStyle.OutputRendering = 'PlainText'
 }
-$Version = '2.1.6'
+$Version = '2.1.7'
 $Started = Get-Date
 $script:HeartbeatSeconds = 30
 $configuredHeartbeat = 0
@@ -213,7 +213,7 @@ trap {
 
 function Show-Help {
 @'
-UnpackFlow for Windows and macOS 2.1.6
+UnpackFlow for Windows and macOS 2.1.7
 
 Usage / 用法:
   unpack-flow run 'X*' -Output 'Extracted'     foreground / 前台运行
@@ -344,11 +344,60 @@ function Clear-ExtractionDestination([string]$Destination) {
     }
 }
 
+function Assert-SafeArchiveEntryPath([string]$Entry, [string]$Destination) {
+    if ([string]::IsNullOrWhiteSpace($Entry) -or $Entry -match '[\x00-\x1F\x7F]') {
+        throw 'Archive contains an empty or control-character entry / 归档包含空条目或控制字符条目'
+    }
+    $normalized = $Entry.Replace('\', '/')
+    if ($normalized.StartsWith('/') -or $normalized -match '^[A-Za-z]:') {
+        throw 'Archive entry uses an absolute path / 归档条目使用绝对路径'
+    }
+    $parts = [System.Collections.Generic.List[string]]::new()
+    foreach ($part in $normalized.Split('/')) {
+        if (-not $part -or $part -eq '.') { continue }
+        if ($part -eq '..') {
+            if ($parts.Count -eq 0) {
+                throw 'Archive entry escapes the destination / 归档条目越出目标目录'
+            }
+            $parts.RemoveAt($parts.Count - 1)
+            continue
+        }
+        $parts.Add($part)
+    }
+    $root = [IO.Path]::GetFullPath($Destination)
+    $candidate = $root
+    foreach ($part in $parts) { $candidate = Join-Path $candidate $part }
+    $candidate = [IO.Path]::GetFullPath($candidate)
+    $separator = [IO.Path]::DirectorySeparatorChar
+    $rootPrefix = $root.TrimEnd($separator, [IO.Path]::AltDirectorySeparatorChar) + $separator
+    $comparison = if ($IsWindows -or $env:OS -eq 'Windows_NT') { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+    if ($candidate -ne $root -and -not $candidate.StartsWith($rootPrefix, $comparison)) {
+        throw 'Archive entry escapes the destination / 归档条目越出目标目录'
+    }
+}
+
+function Assert-SafeZipArchive([string]$Archive, [string]$Destination) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+    $zip = [IO.Compression.ZipFile]::OpenRead($Archive)
+    try {
+        foreach ($entry in $zip.Entries) {
+            Assert-SafeArchiveEntryPath $entry.FullName $Destination
+            $unixType = (($entry.ExternalAttributes -shr 16) -band 0xF000)
+            if ($unixType -eq 0xA000) {
+                throw 'Archive link entries are not allowed / 不允许归档链接条目'
+            }
+        }
+    } finally {
+        $zip.Dispose()
+    }
+}
+
 function Expand-WithNativeTool([string]$Archive, [string]$Destination) {
     $lower = $Archive.ToLowerInvariant()
     $tar = Find-NativeTar
     if ($tar -and $lower -match '(\.tar|\.tar\.gz|\.tgz|\.tar\.bz2|\.tbz2|\.tar\.xz|\.txz)$') {
         Write-Host 'Retrying with native tar / 改用系统 tar 重试'
+        Assert-SafeTarArchive $Archive $Destination $tar
         & $tar -xf $Archive -C $Destination
         if ($LASTEXITCODE -eq 0) { return $true }
         Clear-ExtractionDestination $Destination
@@ -356,6 +405,7 @@ function Expand-WithNativeTool([string]$Archive, [string]$Destination) {
     if ($lower.EndsWith('.zip')) {
         Write-Host 'Retrying with native ZIP support / 改用系统 ZIP 能力重试'
         try {
+            Assert-SafeZipArchive $Archive $Destination
             Microsoft.PowerShell.Archive\Expand-Archive -LiteralPath $Archive -DestinationPath $Destination -Force
             return $true
         } catch {
@@ -365,6 +415,7 @@ function Expand-WithNativeTool([string]$Archive, [string]$Destination) {
     if ($lower.EndsWith('.gz') -and $lower -notmatch '(\.tar\.gz|\.tgz)$') {
         Write-Host 'Retrying with native GZip support / 改用系统 GZip 能力重试'
         $outputName = [IO.Path]::GetFileNameWithoutExtension($Archive)
+        Assert-SafeArchiveEntryPath $outputName $Destination
         $outputPath = Join-Path $Destination $outputName
         try {
             $inputStream = [IO.File]::OpenRead($Archive)
@@ -549,12 +600,62 @@ function Invoke-MonitoredTool([string]$FilePath, [string[]]$Arguments) {
     }
 }
 
+function Assert-Safe7ZipListing([object[]]$Lines, [string]$Destination) {
+    $inEntries = $false
+    $currentEntry = $null
+    foreach ($rawLine in $Lines) {
+        $line = $rawLine.ToString().TrimEnd("`r")
+        if ($line -eq '----------') { $inEntries = $true; continue }
+        if (-not $inEntries) { continue }
+        if ($line.StartsWith('Path = ')) {
+            $currentEntry = $line.Substring(7)
+            Assert-SafeArchiveEntryPath $currentEntry $Destination
+            continue
+        }
+        if ($line.StartsWith('Symbolic Link = ') -or $line.StartsWith('Hard Link = ')) {
+            if ($line.Substring($line.IndexOf('=') + 1).Trim()) {
+                throw 'Archive link entries are not allowed / 不允许归档链接条目'
+            }
+        }
+        if ($line.StartsWith('Attributes = ') -and $line.Substring(13) -match '(^|\s)l[rwx-]') {
+            throw 'Archive link attributes are not allowed / 不允许归档链接属性'
+        }
+    }
+}
+
+function Assert-SafeUnrarListing([object[]]$Lines, [string]$Destination) {
+    foreach ($rawLine in $Lines) {
+        $entry = $rawLine.ToString().TrimEnd("`r")
+        if ($entry) { Assert-SafeArchiveEntryPath $entry $Destination }
+    }
+}
+
+function Assert-SafeTarArchive([string]$Archive, [string]$Destination, [string]$Tar) {
+    $names = Invoke-MonitoredTool $Tar @('-tf',$Archive)
+    if ([int]$names.ExitCode -ne 0) { throw "Cannot safely enumerate TAR archive / 无法安全枚举 TAR: $Archive" }
+    foreach ($rawLine in @($names.Output)) {
+        $entry = $rawLine.ToString().TrimEnd("`r")
+        if ($entry) { Assert-SafeArchiveEntryPath $entry $Destination }
+    }
+    $details = Invoke-MonitoredTool $Tar @('-tvf',$Archive)
+    if ([int]$details.ExitCode -ne 0) { throw "Cannot inspect TAR link metadata / 无法检查 TAR 链接元数据: $Archive" }
+    foreach ($rawLine in @($details.Output)) {
+        $line = $rawLine.ToString()
+        if ($line.StartsWith('l') -or $line.StartsWith('h')) {
+            throw "TAR link entries are not allowed / 不允许 TAR 链接条目: $Archive"
+        }
+    }
+}
+
 function Expand-Archive7([string]$Archive, [string]$Destination, [string]$Seven) {
     if (-not (Test-Path -LiteralPath $Destination -PathType Container)) {
         New-Item -ItemType Directory -Path $Destination -Force | Out-Null
     }
     foreach ($password in Get-Passwords) {
         $passwordArg = if ($password) { "-p$password" } else { '-p-' }
+        $listing = Invoke-MonitoredTool $Seven @('l','-slt',$passwordArg,'--',$Archive)
+        if ([int]$listing.ExitCode -ne 0) { continue }
+        Assert-Safe7ZipListing @($listing.Output) $Destination
         $result = Invoke-MonitoredTool $Seven @('x','-y',"-o$Destination",$passwordArg,'--',$Archive)
         $sevenExit = [int]$result.ExitCode
         if ($sevenExit -eq 0) { return }
@@ -565,9 +666,14 @@ function Expand-Archive7([string]$Archive, [string]$Destination, [string]$Seven)
         Write-Host '7-Zip unsupported; retrying with bundled UnRAR / 7-Zip 不支持，改用内置 UnRAR'
         foreach ($password in Get-Passwords) {
             $passwordArg = if ($password) { "-p$password" } else { '-p-' }
-            $result = Invoke-MonitoredTool $unrar @('t','-idq',$passwordArg,$Archive)
-            $testExit = [int]$result.ExitCode
-            if ($testExit -ne 0) { continue }
+            $listing = Invoke-MonitoredTool $unrar @('lb','-c-',$passwordArg,$Archive)
+            if ([int]$listing.ExitCode -ne 0) { continue }
+            Assert-SafeUnrarListing @($listing.Output) $Destination
+            $details = Invoke-MonitoredTool $unrar @('lt','-c-',$passwordArg,$Archive)
+            if ([int]$details.ExitCode -ne 0) { continue }
+            if (@($details.Output) | Where-Object { $_.ToString() -match '(?i)^\s*(?:Type|Redir[^:]*):\s*(?:Unix\s+)?(?:symbolic|hard)\s+link' }) {
+                throw 'RAR link entries are not allowed / 不允许 RAR 链接条目'
+            }
             $result = Invoke-MonitoredTool $unrar @('x','-o-','-idq',$passwordArg,$Archive,"$Destination/")
             if ([int]$result.ExitCode -eq 0) { return }
             Clear-ExtractionDestination $Destination
@@ -634,7 +740,7 @@ if ($Command -eq 'plan') {
         } else {
             $unrar = Find-Unrar
             if (-not $unrar) { throw "Cannot inspect archive / 无法检查压缩包: $archive" }
-            & $unrar lb -idq -p- $archive | Select-Object -First 10
+            & $unrar lb -c- -p- $archive | Select-Object -First 10
             if ($LASTEXITCODE -ne 0) { throw "Cannot inspect archive / 无法检查压缩包: $archive" }
         }
     }

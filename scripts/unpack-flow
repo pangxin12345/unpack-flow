@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-VERSION='2.1.6'
+VERSION='2.1.7'
 START_DIR=$(pwd -P)
 SELF=$0
 while [[ -L "$SELF" ]]; do
@@ -274,7 +274,7 @@ status_job() {
   if [[ -f "$dir/pid" ]]; then
     pid=$(<"$dir/pid")
     kill -0 "$pid" 2>/dev/null && running=是
-    echo "PID：$pid（运行中：$running）"
+    echo "PID：${pid}（运行中：${running}）"
   fi
   if [[ -f "$dir/started-epoch.txt" ]]; then
     started=$(<"$dir/started-epoch.txt")
@@ -327,26 +327,156 @@ clean_temp() {
   rm -rf -- "$d"
 }
 
+validate_archive_entry_path() {
+  local entry=$1 component
+  local -a components=() normalized=()
+  [[ -n "$entry" && ! "$entry" =~ [[:cntrl:]] ]] || return 1
+  entry=${entry//\\//}
+  [[ "$entry" != /* && ! "$entry" =~ ^[A-Za-z]: ]] || return 1
+  IFS='/' read -r -a components <<< "$entry"
+  for component in "${components[@]}"; do
+    case "$component" in
+      ''|.) continue ;;
+      ..)
+        ((${#normalized[@]} > 0)) || return 1
+        unset 'normalized[${#normalized[@]}-1]'
+        ;;
+      *) normalized+=("$component") ;;
+    esac
+  done
+  return 0
+}
+
+validate_7z_archive() {
+  local arc=$1 password=$2 line entry='' listing rc=0
+  local in_entries=0
+  listing=$(mktemp "${TMPDIR:-/tmp}/unpack-flow-7z-list.XXXXXX")
+  if ! "$SEVEN" l -slt "-p$password" -- "$arc" >"$listing" 2>>"$JOB_LOG"; then
+    rm -f -- "$listing"
+    return 1
+  fi
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line=${line%$'\r'}
+    if [[ "$line" == '----------' ]]; then
+      in_entries=1
+      continue
+    fi
+    (( in_entries == 1 )) || continue
+    if [[ "$line" == 'Path = '* ]]; then
+      entry=${line#Path = }
+      if ! validate_archive_entry_path "$entry"; then
+        echo "[$(date '+%F %T')] 拒绝不安全的归档条目路径" >> "$JOB_LOG"
+        rc=2
+        break
+      fi
+    elif [[ "$line" == 'Symbolic Link = '* || "$line" == 'Hard Link = '* ]]; then
+      if [[ -n "${line#*= }" ]]; then
+        echo "[$(date '+%F %T')] 拒绝归档中的链接条目" >> "$JOB_LOG"
+        rc=2
+        break
+      fi
+    elif [[ "$line" == 'Attributes = '* && "${line#Attributes = }" =~ (^|[[:space:]])l[rwx-] ]]; then
+      echo "[$(date '+%F %T')] 拒绝归档中的链接属性" >> "$JOB_LOG"
+      rc=2
+      break
+    fi
+  done < "$listing"
+  rm -f -- "$listing"
+  return "$rc"
+}
+
+validate_unrar_archive() {
+  local arc=$1 password=$2 entry line listing details rc=0
+  listing=$(mktemp "${TMPDIR:-/tmp}/unpack-flow-unrar-list.XXXXXX")
+  details=$(mktemp "${TMPDIR:-/tmp}/unpack-flow-unrar-details.XXXXXX")
+  if ! "$UNRAR" lb -c- "-p$password" "$arc" >"$listing" 2>>"$JOB_LOG"; then
+    rm -f -- "$listing" "$details"
+    return 1
+  fi
+  while IFS= read -r entry || [[ -n "$entry" ]]; do
+    entry=${entry%$'\r'}
+    if ! validate_archive_entry_path "$entry"; then
+      echo "[$(date '+%F %T')] 拒绝不安全的 RAR 条目路径" >> "$JOB_LOG"
+      rc=2
+      break
+    fi
+  done < "$listing"
+  if (( rc == 0 )); then
+    if ! "$UNRAR" lt -c- "-p$password" "$arc" >"$details" 2>>"$JOB_LOG"; then
+      rm -f -- "$listing" "$details"
+      return 1
+    fi
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      if [[ "$line" =~ ^[[:space:]]*(Type|Redir[^:]*):[[:space:]]*([Uu]nix[[:space:]]+)?([Ss]ymbolic|[Hh]ard)[[:space:]]+[Ll]ink ]]; then
+        echo "[$(date '+%F %T')] 拒绝 RAR 中的链接条目" >> "$JOB_LOG"
+        rc=2
+        break
+      fi
+    done < "$details"
+  fi
+  rm -f -- "$listing" "$details"
+  return "$rc"
+}
+
+validate_tar_archive() {
+  local arc=$1 entry line names details rc=0
+  names=$(mktemp "${TMPDIR:-/tmp}/unpack-flow-tar-names.XXXXXX")
+  details=$(mktemp "${TMPDIR:-/tmp}/unpack-flow-tar-details.XXXXXX")
+  if ! tar -tf "$arc" >"$names" 2>>"$JOB_LOG" || ! tar -tvf "$arc" >"$details" 2>>"$JOB_LOG"; then
+    rm -f -- "$names" "$details"
+    return 1
+  fi
+  while IFS= read -r entry || [[ -n "$entry" ]]; do
+    entry=${entry%$'\r'}
+    if ! validate_archive_entry_path "$entry"; then
+      echo "[$(date '+%F %T')] 拒绝不安全的 TAR 条目路径" >> "$JOB_LOG"
+      rc=2
+      break
+    fi
+  done < "$names"
+  if (( rc == 0 )); then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      if [[ "$line" == l* || "$line" == h* ]]; then
+        echo "[$(date '+%F %T')] 拒绝 TAR 中的链接条目" >> "$JOB_LOG"
+        rc=2
+        break
+      fi
+    done < "$details"
+  fi
+  rm -f -- "$names" "$details"
+  return "$rc"
+}
+
 extract_archive() {
-  local arc=$1 dest=$2 kind p lower output_name
+  local arc=$1 dest=$2 kind p lower output_name validation_rc
   local -a passwords=('-')
   kind=$(archive_kind "$arc")
   lower=${arc,,}
   mkdir -p "$dest"
+  if [[ -n "${UNPACK_FLOW_PASSWORDS_FILE:-}" && -r "$UNPACK_FLOW_PASSWORDS_FILE" ]]; then
+    mapfile -t passwords < "$UNPACK_FLOW_PASSWORDS_FILE"
+    passwords=('-' "${passwords[@]}")
+  fi
   echo "[$(date '+%F %T')] 尝试 7-Zip：$arc" >> "$JOB_LOG"
-  if "$SEVEN" x -y -o"$dest" "$arc" >> "$JOB_LOG" 2>&1; then return 0; fi
-  find "$dest" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+  for p in "${passwords[@]}"; do
+    validation_rc=0
+    validate_7z_archive "$arc" "$p" || validation_rc=$?
+    if (( validation_rc == 2 )); then return 1; fi
+    (( validation_rc == 0 )) || continue
+    if "$SEVEN" x -y -o"$dest" "-p$p" -- "$arc" >> "$JOB_LOG" 2>&1; then return 0; fi
+    find "$dest" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+  done
   case "$kind" in
     rar)
       if [[ -z "$UNRAR" || ! -x "$UNRAR" ]]; then
         echo "[$(date '+%F %T')] UnRAR 不可用，继续尝试其他可用工具" >> "$JOB_LOG"
       else
         echo "[$(date '+%F %T')] 7-Zip 失败，改用 UnRAR：$arc" >> "$JOB_LOG"
-      if [[ -n "${UNPACK_FLOW_PASSWORDS_FILE:-}" && -r "$UNPACK_FLOW_PASSWORDS_FILE" ]]; then
-        mapfile -t passwords < "$UNPACK_FLOW_PASSWORDS_FILE"
-        passwords=('-' "${passwords[@]}")
-      fi
       for p in "${passwords[@]}"; do
+        validation_rc=0
+        validate_unrar_archive "$arc" "$p" || validation_rc=$?
+        if (( validation_rc == 2 )); then return 1; fi
+        (( validation_rc == 0 )) || continue
         if "$UNRAR" x -y -o+ -p"$p" "$arc" "$dest/" >> "$JOB_LOG" 2>&1; then return 0; fi
         find "$dest" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
       done
@@ -354,11 +484,16 @@ extract_archive() {
   esac
   if [[ "$lower" =~ \.(tar|tar\.gz|tgz|tar\.bz2|tbz2|tar\.xz|txz)$ ]] && command -v tar >/dev/null 2>&1; then
     echo "[$(date '+%F %T')] 改用系统 tar：$arc" >> "$JOB_LOG"
+    validation_rc=0
+    validate_tar_archive "$arc" || validation_rc=$?
+    if (( validation_rc == 2 )); then return 1; fi
+    (( validation_rc == 0 )) || return 1
     if tar -xf "$arc" -C "$dest" >> "$JOB_LOG" 2>&1; then return 0; fi
     find "$dest" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
   fi
   if [[ "$lower" == *.gz && ! "$lower" =~ \.(tar\.gz|tgz)$ ]] && command -v gzip >/dev/null 2>&1; then
     output_name=$(basename "${arc%.gz}")
+    validate_archive_entry_path "$output_name" || return 1
     echo "[$(date '+%F %T')] 改用系统 gzip：$arc" >> "$JOB_LOG"
     if gzip -dc -- "$arc" > "$dest/$output_name" 2>> "$JOB_LOG"; then return 0; fi
     find "$dest" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
@@ -424,7 +559,7 @@ process_item() {
   arc=$(find_entry_archive "$src" || true)
   if [[ -z "$arc" ]]; then
     write_source_status "$src" '跳过' '未找到支持的压缩包'
-    echo "[$(date '+%F %T')] 跳过 $base：未找到压缩包" >> "$JOB_LOG"
+    echo "[$(date '+%F %T')] 跳过 ${base}：未找到压缩包" >> "$JOB_LOG"
     return 0
   fi
   work="$OUT_ROOT/.unpack_flow_${JOB_ID}_${base}"
@@ -433,9 +568,11 @@ process_item() {
   mkdir -p "$work"
   write_source_status "$src" '处理中' "首包：$arc"
   update_progress "$base" '解压首层' 1
-  echo "[$(date '+%F %T')] 开始 $base：$arc" >> "$JOB_LOG"
+  echo "[$(date '+%F %T')] 开始 ${base}：$arc" >> "$JOB_LOG"
   if ! extract_archive "$arc" "$work"; then
     write_source_status "$src" '失败' '首层解压失败，请查看日志'
+    clean_temp "$work"
+    clean_temp "$next"
     return 1
   fi
 
@@ -453,7 +590,7 @@ process_item() {
       [[ -n "${failed_payloads[$payload]:-}" ]] && continue
       next="$(dirname "$payload")/.unpack_flow_inner_${JOB_ID}_${layer}_$RANDOM"
       mkdir -p "$next"
-      echo "[$(date '+%F %T')] $base：展开内层 $(basename "$payload")" >> "$JOB_LOG"
+      echo "[$(date '+%F %T')] ${base}：展开内层 $(basename "$payload")" >> "$JOB_LOG"
       update_progress "$base" "展开内层：$(basename "$payload")" "$((layer+2))"
       if extract_archive "$payload" "$next"; then
         remove_archive_volumes "$payload"
@@ -464,7 +601,7 @@ process_item() {
         failed_payloads[$payload]=1
         partial=1
         rm -rf -- "$next"
-        echo "[$(date '+%F %T')] $base：跳过失败的内层归档 $payload" >> "$JOB_LOG"
+        echo "[$(date '+%F %T')] ${base}：跳过失败的内层归档 $payload" >> "$JOB_LOG"
       fi
     done
     (( processed == 1 )) || break
@@ -499,8 +636,8 @@ process_item() {
   if [[ "$root" == "$work" ]]; then mv "$work" "$dest"; else mv "$root" "$dest"; clean_temp "$work"; fi
   find "$dest" -type f \( -name '.DS_Store' -o -name '._*' \) -delete
   find "$dest" -depth -type d -name '__MACOSX' -exec rm -rf -- {} +
-  write_source_status "$src" '已完成' "目标：$dest；容量：$(du -sh "$dest" | cut -f1)"
-  echo "[$(date '+%F %T')] 完成 $base：$dest" >> "$JOB_LOG"
+  write_source_status "$src" '已完成' "目标：${dest}；容量：$(du -sh "$dest" | cut -f1)"
+  echo "[$(date '+%F %T')] 完成 ${base}：$dest" >> "$JOB_LOG"
   update_progress "$base" "已完成：$dest" "$((layer+1))"
   return "$partial"
 }

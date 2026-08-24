@@ -128,4 +128,4 @@ UnpackFlow conserve les fichiers sources, n’écrase pas les destinations et n�
 
 Pour toute question, écrivez à [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) ou [ouvrez un ticket GitHub](https://github.com/pangxin12345/unpack-flow/issues).
 
-Licence MIT, version 2.1.6.
+Licence MIT, version 2.1.7.

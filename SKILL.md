@@ -8,7 +8,7 @@ metadata:
   github_profile: "https://github.com/pangxin12345"
   creator: "helen.jar"
   license: "MIT"
-  version: "2.1.6"
+  version: "2.1.7"
 ---
 
 # UnpackFlow / 智能解压编排器
@@ -28,6 +28,7 @@ UnpackFlow 面向软件包、数据集、备份、素材、日志、磁盘镜像
 - 裸 `*` 被 Shell 展开成多个参数后仍会统一扫描：过滤 `.sha256` 等非归档文件和 `part2`、`.7z.002`、`.zip.002`、`.r00`、`.z01` 等后续卷，只把 `part1.exe`、`part1.rar`、`.7z.001`、`.zip.001` 或普通单包作为任务入口。
 - `-r`/`--recursive`（PowerShell 也支持 `-Recursive`）递归发现输入目录中的全部归档首卷，并继续展开解压结果中的内层归档；同名源目录存在时安全输出为 `*-unpacked`，不覆盖源目录。
 - 不删除源包，不覆盖已有目标。修复残缺输出前必须精确确认待删除目录。
+- 每次首层或递归内层解压前必须枚举全部归档条目，统一处理 `/` 与 `\\`，拒绝绝对路径、规范化后越出目标目录的路径及软/硬链接条目；校验失败时停止该归档并清理本次临时目录。
 - 三平台命令语义一致：`run` 前台运行并持续显示阶段，`start` 提交后台任务并立即返回任务号；`status`、`wait`、`log` 查看状态、等待结果和读取持久日志。Linux 无子命令调用仅保留为旧版后台兼容入口，新脚本和文档必须显式使用 `run` 或 `start`。
 - Windows/macOS 的 `start` 后台进程必须使用非交互模式并完全断开父终端的标准输入、输出和错误；后台进度只写任务日志，禁止向当前终端泄漏 ANSI/光标查询序列。
 - Windows/macOS 调用 7-Zip、UnRAR 等外部工具时必须持续刷新耗时；长任务每30秒写入运行心跳，不能因同步等待而表现为无响应。
@@ -42,6 +43,7 @@ UnpackFlow 面向软件包、数据集、备份、素材、日志、磁盘镜像
 3. 用 `unpack-flow list '<输入>'` 确认匹配项，再用 `unpack-flow plan '<输入>'` 检查首卷与内容结构。
 4. 前台执行使用 `unpack-flow run '<输入>' -Output '<输出>'`；后台执行使用 `unpack-flow start '<输入>' -Output '<输出>'`，再用 `status`、`wait`、`log` 跟踪任务。Linux 也可使用 `-o <输出>`。
 5. 核对退出码、目标目录、文件数量和代表性文件；修复后重跑失败场景与相邻主路径。
+6. 安全相关改动必须运行 `tests/test-archive-path-safety.sh` 和 `tests/test-archive-path-safety.ps1`，并确认没有目标目录外文件或残留临时目录。
 
 原生 Linux/Windows 验收默认使用匿名合成夹具目录 `/data/unpack-flow-testcases`，也可通过 `UNPACK_FLOW_TEST_ROOT` 显式指定隔离目录。日常回归使用 `unpack-flow-minimal-testcases-v1.zip` 及其 SHA-256，通过 `tests/run-native-linux-minimal.sh` 执行；大型套件只在性能或小套件未覆盖的格式兼容性验收中运行。
 

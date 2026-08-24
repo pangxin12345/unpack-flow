@@ -7,7 +7,7 @@
 <p align="center"><strong>跨平台处理嵌套归档、分卷包与自解压归档。</strong></p>
 
 <p align="center">
-  <a href="https://github.com/pangxin12345/unpack-flow/releases"><img alt="版本 2.1.6" src="https://img.shields.io/badge/版本-2.1.6-635bff"></a>
+  <a href="https://github.com/pangxin12345/unpack-flow/releases"><img alt="版本 2.1.7" src="https://img.shields.io/badge/版本-2.1.7-635bff"></a>
   <a href="../LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/许可证-MIT-22a06b"></a>
   <img alt="Linux、Windows 和 macOS" src="https://img.shields.io/badge/平台-Linux%20%7C%20Windows%20%7C%20macOS-1684ff">
   <a href="https://once-email.com"><img alt="Once Email 出品" src="https://img.shields.io/badge/出品-Once%20Email-0aa7a7"></a>
@@ -224,6 +224,7 @@ UnpackFlow 只尝试与文件格式匹配的工具，不会无限重试：
 - 保留所有源压缩包；
 - 不覆盖已有目标目录；
 - 不执行归档中的未知 EXE；
+- 每次解压首层或递归内层前，先枚举并规范化全部条目；拒绝绝对路径、越出目标目录的路径以及归档链接，失败时保留原包并清理临时目录；
 - 不绕过密码、DRM 或访问控制；
 - 拒绝把系统根目录作为输入或输出；
 - 大型任务开始前应确认磁盘空间充足。
@@ -271,4 +272,4 @@ Windows 自动安装：
 
 一般问题或功能建议可以在 [GitHub Issues](https://github.com/pangxin12345/unpack-flow/issues) 中提交；需要邮件联系时，请发送至 [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com)。请勿发送密码、访问令牌、私人归档或未经检查的敏感日志。
 
-MIT License，版本 2.1.6。
+MIT License，版本 2.1.7。

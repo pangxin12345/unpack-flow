@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.1.7 — 2026-08-24
+
+- Blocked archive path traversal before extraction on Bash and PowerShell by enumerating and normalizing every entry, rejecting absolute or escaping paths and archive links, and applying the same checks to recursive inner archives and fallback engines.
+- Added synthetic ZIP/TAR traversal regressions and verified failed security checks leave no escaped files or temporary extraction directories.
+- Kept the local project banner in the xfyun package while removing service-specific Agent metadata and its publishing-only audit references from that channel variant; other public channels keep the complete Agent Skill layout.
+- Delimited Bash variables next to bilingual punctuation so Bash 5.3 locales cannot interpret punctuation bytes as part of a variable name.
+
 ## 2.1.6 — 2026-08-24
 
 - Declared complete Alpine runtime dependencies for release-control jobs, including Python 3 for all-channel approval and xfyun verification, and explicit TAR support for archive-inspecting gates.

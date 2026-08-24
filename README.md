@@ -7,7 +7,7 @@
 <p align="center"><strong>Cross-platform extraction for nested, multipart and self-extracting archives.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/pangxin12345/unpack-flow/releases"><img alt="Version 2.1.6" src="https://img.shields.io/badge/version-2.1.6-635bff"></a>
+  <a href="https://github.com/pangxin12345/unpack-flow/releases"><img alt="Version 2.1.7" src="https://img.shields.io/badge/version-2.1.7-635bff"></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-22a06b"></a>
   <img alt="Linux, Windows and macOS" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-1684ff">
   <a href="https://once-email.com"><img alt="Published by Once Email" src="https://img.shields.io/badge/by-Once%20Email-0aa7a7"></a>
@@ -203,7 +203,7 @@ The repository follows the Agent Skills directory format. Compatibility with a f
 
 ## Safety and data handling
 
-UnpackFlow keeps source archives, refuses system roots as extraction inputs or outputs, skips existing destinations, and never executes unknown EXE files. It does not bypass DRM, passwords or access controls. Verify available disk space before large jobs.
+UnpackFlow keeps source archives, refuses system roots as extraction inputs or outputs, skips existing destinations, and never executes unknown EXE files. Before every first-level or recursive extraction, it enumerates archive entries, normalizes both slash styles, and rejects absolute paths, paths that escape the destination, and archive links. A rejected archive is preserved and its temporary extraction directory is cleaned. It does not bypass DRM, passwords or access controls. Verify available disk space before large jobs.
 
 The Windows x64/ARM64 packages contain the portable full 7-Zip 26.02 engine plus the complete 7-Zip Extra artifacts; Windows x64 also includes official UnRAR command-line freeware. Linux x64 and macOS ARM64 releases include the official UnRAR binary, original package and license. Original 7-Zip installers, the Extra package and licenses are retained in source. UnRAR is used only as the bounded RAR fallback documented above.
 
@@ -226,4 +226,4 @@ The build creates Linux `.tar.gz`, macOS `.tar.gz`, Windows `.zip`, and `SHA256S
 
 For questions, email [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) or [open a GitHub issue](https://github.com/pangxin12345/unpack-flow/issues).
 
-MIT License. Version 2.1.6.
+MIT License. Version 2.1.7.

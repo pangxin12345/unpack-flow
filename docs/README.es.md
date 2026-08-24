@@ -128,4 +128,4 @@ UnpackFlow conserva las fuentes, no sobrescribe destinos ni ejecuta archivos EXE
 
 Para cualquier pregunta, escriba a [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) o [abra una incidencia en GitHub](https://github.com/pangxin12345/unpack-flow/issues).
 
-Licencia MIT, versión 2.1.6.
+Licencia MIT, versión 2.1.7.

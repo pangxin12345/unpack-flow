@@ -14,7 +14,7 @@ def main() -> int:
     required = (
         "SKILL.md", "README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE",
         "SECURITY.md", "SUPPORT.md", "PUBLISHER.md",
-        "agents/openai.yaml", "install.bat", "install-linux.sh", "install-macos.sh",
+        "install.bat", "install-linux.sh", "install-macos.sh",
         "scripts/build-release.sh", "scripts/create-reproducible-archives.py",
         "scripts/normalize-release-tree.py", "scripts/verify-release-assets.sh",
         "scripts/audit_skill.py", "scripts/check-anonymization.sh",

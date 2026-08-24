@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 $share = if ($env:UNPACK_FLOW_WINDOWS_SHARE) { $env:UNPACK_FLOW_WINDOWS_SHARE } elseif (Test-Path -LiteralPath 'C:\UF215' -PathType Container) { 'C:\UF215' } else { throw 'Set UNPACK_FLOW_WINDOWS_SHARE to the isolated synthetic test share.' }
 $result = Join-Path $share 'windows-native-result.txt'
-$localRoot = 'C:\UnpackFlowTest-2.1.6'
+$localRoot = 'C:\UnpackFlowTest-2.1.7'
 $childOut = Join-Path $localRoot 'child-out.txt'
 $childErr = Join-Path $localRoot 'child-err.txt'
 
@@ -37,7 +37,7 @@ try {
     $cli = Join-Path $env:USERPROFILE '.local\bin\unpack-flow.cmd'
     $version = (& $cli version | Out-String).Trim()
     "VERSION=$version" | Add-Content -LiteralPath $result -Encoding UTF8
-    if ($version -ne '2.1.6') { throw "unexpected version: $version" }
+    if ($version -ne '2.1.7') { throw "unexpected version: $version" }
 
     $scan = Join-Path $localRoot 'scan'
     New-Item -ItemType Directory -Path $scan | Out-Null

@@ -128,4 +128,4 @@ scripts/install_local.sh .
 
 لأي سؤال، راسل [tiantuowl@gmail.com](mailto:tiantuowl@gmail.com) أو [افتح مشكلة على GitHub](https://github.com/pangxin12345/unpack-flow/issues).
 
-ترخيص MIT، الإصدار 2.1.6.
+ترخيص MIT، الإصدار 2.1.7.

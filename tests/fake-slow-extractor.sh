@@ -1,6 +1,16 @@
 #!/bin/sh
 set -eu
 
+if [ "${1:-}" = l ]; then
+  cat <<'EOF'
+----------
+Path = extracted.txt
+Folder = -
+Attributes =  -rw-r--r--
+EOF
+  exit 0
+fi
+
 destination=
 for argument in "$@"; do
   case "$argument" in
